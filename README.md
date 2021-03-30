@@ -11,4 +11,4 @@ The user can select the following spatial scales: a.) admin 2 (district), b.) ad
 - If user selects, "current" maps and charts will show the current precipitaiton accumulation (mm) and NDVI values. 
 - If the user selects, "forecasted" the charts will display precipitation forecast for the next 30 days and the map will display forecasted cummulative precipitation (mm) for aggregated at the selecte admin level for the next 30 days. 
 ## Further information
-Data set was obtained from Google Earth Engine using rgee. For more information and/or to request the data set used please contact the author
+Data set was obtained from Google Earth Engine using R-package: rgee. For more information and/or to request the data set used please contact the author
