@@ -20,13 +20,12 @@ rawdata$district<- rawdata$district %>%
     filter(id!=129)
 
 
+rawdata$district<- rawdata$district %>%
+  rename(Precipitation= "cum_mm")
 
-
-# ndvi_bins<-pretty(rawdata$district$NDVI)
-# ndvi_pal <- colorBin("YlBluGr", domain = rawdata$ndvi_district, bins = ndvi_bins)
 
 bb<-st_bbox(rawdata$district)
-# lng = mean(bb[[1]],bb[[3]]),lat = mean(bb[[2]],bb[[4]]),
+
 
 avg_precip_uga<-rawdata$precip_district %>%
     group_by(date) %>%
@@ -37,7 +36,9 @@ avg_precip_uga<-rawdata$precip_district %>%
 leafmap<-leaflet(options= leafletOptions(zoomSnap = 0.1,
                                          zoomDelta=0.05)) %>%
   addProviderTiles(providers$Esri.WorldGrayCanvas,
-                   options = providerTileOptions(noWrap = T))
+                   options = providerTileOptions(noWrap = T)) %>%
+  leaflet::setView(lng = 32.39093,
+                   lat =  1.278573,zoom = 7.1)
 
 
 
@@ -84,19 +85,42 @@ server <- function(input, output) {
 get_pal<- reactive({
   if(input$env_opts=="Precipitation"){
     bins<- seq(0, 350, by = 50)
-    pal <- colorBin("YlOrRd", domain = rawdata$district$cum_mm, bins = bins)
+    pal <- colorBin("YlOrRd", domain = rawdata$district$Precipitation, bins = bins)
   }
   if(input$env_opts=="NDVI"){
     bins<- pretty(rawdata$district$NDVI)
-    pal <- colorBin("YlBluGr", domain = rawdata$ndvi_district, bins = bins)
+    pal <- colorBin("YlBluGr", domain = rawdata$district$NDVI, bins = bins)
 
   }
   return(pal)
 })
+
+
 output$mymap<- renderLeaflet({
     leafmap
 
 })
+observe({
+  pal <- get_pal()
+
+  leafletProxy("mymap") %>%
+    leaflet::addPolygons(data=rawdata$district,
+                         fillColor = ~pal(rawdata$district[[input$env_opts]]),
+                         weight = 2,
+                         opacity = 1,
+                         color = "white",
+                         dashArray = "3",
+                         fillOpacity = 0.5,
+                         layerId = ~DName2019,
+                         highlight = highlightOptions(
+                           weight = 5,
+                           color = "#666",
+                           dashArray = "",
+                           fillOpacity = 0.2,
+                           bringToFront = TRUE))
+
+})
+
 output$precip_plot<-
     renderHighchart({avg_precip_uga %>%
     highcharter::hchart(type = "line",
