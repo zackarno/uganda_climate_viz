@@ -23,8 +23,7 @@ rawdata$district<- rawdata$district %>%
 bins<- seq(0, 350, by = 50)
 pal <- colorBin("YlOrRd", domain = rawdata$precip_district_cumm, bins = bins)
 
-# ndvi_bins<-pretty(rawdata$district$NDVI)
-# ndvi_pal <- colorBin("YlBluGr", domain = rawdata$ndvi_district, bins = ndvi_bins)
+
 
 bb<-st_bbox(rawdata$district)
 # lng = mean(bb[[1]],bb[[3]]),lat = mean(bb[[2]],bb[[4]]),
@@ -34,33 +33,30 @@ avg_precip_uga<-rawdata$precip_district %>%
     summarise(
         precip_avg= mean(precip,na.rm=T)
     )
-st_centroid(rawdata$district %>% summarise())
-leafmap<-leaflet(leafletOptions(zoomSnap = 0.1
-                                # zoomDelta=0.05
-                                )) %>%
-  addTiles() %>%
-    # addProviderTiles(providers$Esri.WorldGrayCanvas,
-    #                  options = providerTileOptions(noWrap = T)) %>%
-    leaflet::addPolygons(data=rawdata$district,
-                         fillColor = formula(paste0("~","pal(cum_mm)")),
-                         weight = 2,
-                         opacity = 1,
-                         color = "white",
-                         dashArray = "3",
-                         fillOpacity = 0.5,
-                         layerId = ~DName2019,
-                         highlight = highlightOptions(
-                             weight = 5,
-                             color = "#666",
-                             dashArray = "",
-                             fillOpacity = 0.2,
-                             bringToFront = TRUE)) %>%
-  leaflet::setView(lng = 32.39093,
-                   lat =  1.278573,zoom = 7)
 
-# avg_precip_uga %>%
-#     highcharter::hchart(type = "line",
-#                          hcaes(x = date, y = precip_avg))
+leafmap<-leaflet(options=leafletOptions(zoomSnap = 0.01,
+                                zoomDelta=0.01
+                                )) %>%
+    addProviderTiles(providers$Esri.WorldGrayCanvas,
+                     options = providerTileOptions(noWrap = T)) %>%
+  leaflet::addPolygons(data=rawdata$district,
+                       fillColor = formula(paste0("~","pal(cum_mm)")),
+                       weight = 2,
+                       opacity = 1,
+                       color = "white",
+                       dashArray = "3",
+                       fillOpacity = 0.5,
+                       layerId = ~DName2019,
+                       highlight = highlightOptions(
+                         weight = 5,
+                         color = "#666",
+                         dashArray = "",
+                         fillOpacity = 0.2,
+                         bringToFront = TRUE)) %>%
+  leaflet::setView(lng = 32.39093,
+                   lat =  1.278573,zoom = 7.1)
+
+
 
 # Define UI for application that draws a histogram
 ui <- bootstrapPage(
@@ -101,10 +97,15 @@ ui <- bootstrapPage(
 server <- function(input, output) {
 # htitle<- glue::glue("Average {input$env_opts} Across Uganda")
 
+
+
+
 output$mymap<- renderLeaflet({
     leafmap
 
 })
+
+
 output$precip_plot<-
     renderHighchart({avg_precip_uga %>%
     highcharter::hchart(type = "line",
