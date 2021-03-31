@@ -20,8 +20,7 @@ rawdata$district<- rawdata$district %>%
     filter(id!=129)
 
 
-bins<- seq(0, 350, by = 50)
-pal <- colorBin("YlOrRd", domain = rawdata$precip_district_cumm, bins = bins)
+
 
 # ndvi_bins<-pretty(rawdata$district$NDVI)
 # ndvi_pal <- colorBin("YlBluGr", domain = rawdata$ndvi_district, bins = ndvi_bins)
@@ -81,6 +80,19 @@ ui <- bootstrapPage(
 server <- function(input, output) {
 # htitle<- glue::glue("Average {input$env_opts} Across Uganda")
 
+
+get_pal<- reactive({
+  if(input$env_opts=="Precipitation"){
+    bins<- seq(0, 350, by = 50)
+    pal <- colorBin("YlOrRd", domain = rawdata$district$cum_mm, bins = bins)
+  }
+  if(input$env_opts=="NDVI"){
+    bins<- pretty(rawdata$district$NDVI)
+    pal <- colorBin("YlBluGr", domain = rawdata$ndvi_district, bins = bins)
+
+  }
+  return(pal)
+})
 output$mymap<- renderLeaflet({
     leafmap
 
