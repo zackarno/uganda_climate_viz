@@ -23,10 +23,6 @@ rawdata$district<- rawdata$district %>%
 rawdata$district<- rawdata$district %>%
   rename(Precipitation= "cum_mm")
 
-<<<<<<< HEAD
-
-=======
->>>>>>> develop
 
 bb<-st_bbox(rawdata$district)
 
