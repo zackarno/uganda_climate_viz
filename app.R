@@ -34,11 +34,11 @@ avg_precip_uga<-rawdata$precip_district %>%
     )
 
 leafmap<-leaflet(options= leafletOptions(zoomSnap = 0.1,
-                                         zoomDelta=0.05)) %>%
+                                         zoomDelta=0.1)) %>%
   addProviderTiles(providers$Esri.WorldGrayCanvas,
                    options = providerTileOptions(noWrap = T)) %>%
   leaflet::setView(lng = 32.39093,
-                   lat =  1.278573,zoom = 7.1)
+                   lat =  1.278573,zoom = 7.7)
 
 
 
@@ -54,10 +54,9 @@ ui <- bootstrapPage(
                   draggable = F, top = 25, left = "auto", right = 20,
                   width = 325,
                   p(highchartOutput("precip_plot"))),
-    absolutePanel(id = "controls", class = "panel panel-default", fixed = TRUE,
+    absolutePanel(id = "parameters", class = "panel panel-default", fixed = TRUE,
                   draggable = F, top = 25, right = "auto", left = 45,
                   width = 295,
-
                   h3(HTML(sprintf("<span style='color: %s;'><strong>Analysis Options</span></strong>",
                                   reach_cols("medred")))),
                   shinyWidgets::sliderTextInput(inputId = "temporal_opts",
@@ -83,11 +82,13 @@ server <- function(input, output) {
 get_pal<- reactive({
   if(input$env_opts=="Precipitation"){
     bins<- seq(0, 350, by = 50)
-    pal <- colorBin("YlOrRd", domain = rawdata$district$Precipitation, bins = bins)
+    pal <- colorBin(palette = "YlOrRd", domain = rawdata$district$Precipitation, bins = bins)
   }
   if(input$env_opts=="NDVI"){
     bins<- pretty(rawdata$district$NDVI)
-    pal <- colorBin("YlBluGr", domain = rawdata$district$NDVI, bins = bins)
+    pal <- colorBin(palette = "Greens",
+                    domain = rawdata$district$NDVI,
+                    bins = bins)
 
   }
   return(pal)
@@ -103,6 +104,8 @@ observe({
   leafletProxy("mymap") %>%
     leaflet::addPolygons(data=rawdata$district,
                          fillColor = ~pal(rawdata$district[[input$env_opts]]),
+                         # fillColor = ~pal(!!sym(input$env_opts)),
+                         label = rawdata$district[[input$env_opts]],
                          weight = 2,
                          opacity = 1,
                          color = "white",
