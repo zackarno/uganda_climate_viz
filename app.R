@@ -20,13 +20,16 @@ rawdata$district<- rawdata$district %>%
     filter(id!=129)
 
 
-bins<- seq(0, 350, by = 50)
-pal <- colorBin("YlOrRd", domain = rawdata$precip_district_cumm, bins = bins)
+rawdata$district<- rawdata$district %>%
+  rename(Precipitation= "cum_mm")
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> develop
 
 bb<-st_bbox(rawdata$district)
-# lng = mean(bb[[1]],bb[[3]]),lat = mean(bb[[2]],bb[[4]]),
+
 
 avg_precip_uga<-rawdata$precip_district %>%
     group_by(date) %>%
@@ -34,6 +37,7 @@ avg_precip_uga<-rawdata$precip_district %>%
         precip_avg= mean(precip,na.rm=T)
     )
 
+<<<<<<< HEAD
 leafmap<-leaflet(options=leafletOptions(zoomSnap = 0.01,
                                 zoomDelta=0.01
                                 )) %>%
@@ -55,6 +59,14 @@ leafmap<-leaflet(options=leafletOptions(zoomSnap = 0.01,
                          bringToFront = TRUE)) %>%
   leaflet::setView(lng = 32.39093,
                    lat =  1.278573,zoom = 7.1)
+=======
+leafmap<-leaflet(options= leafletOptions(zoomSnap = 0.1,
+                                         zoomDelta=0.1)) %>%
+  addProviderTiles(providers$Esri.WorldGrayCanvas,
+                   options = providerTileOptions(noWrap = T)) %>%
+  leaflet::setView(lng = 32.39093,
+                   lat =  1.278573,zoom = 7.7)
+>>>>>>> develop
 
 
 
@@ -70,10 +82,9 @@ ui <- bootstrapPage(
                   draggable = F, top = 25, left = "auto", right = 20,
                   width = 325,
                   p(highchartOutput("precip_plot"))),
-    absolutePanel(id = "controls", class = "panel panel-default", fixed = TRUE,
+    absolutePanel(id = "parameters", class = "panel panel-default", fixed = TRUE,
                   draggable = F, top = 25, right = "auto", left = 45,
                   width = 295,
-
                   h3(HTML(sprintf("<span style='color: %s;'><strong>Analysis Options</span></strong>",
                                   reach_cols("medred")))),
                   shinyWidgets::sliderTextInput(inputId = "temporal_opts",
@@ -95,25 +106,62 @@ ui <- bootstrapPage(
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
-# htitle<- glue::glue("Average {input$env_opts} Across Uganda")
+
+get_pal<- reactive({
+  if(input$env_opts=="Precipitation"){
+    bins<- seq(0, 350, by = 50)
+    pal <- colorBin(palette = "YlOrRd", domain = rawdata$district$Precipitation, bins = bins)
+  }
+  if(input$env_opts=="NDVI"){
+    bins<- pretty(rawdata$district$NDVI)
+    pal <- colorBin(palette = "Greens",
+                    domain = rawdata$district$NDVI,
+                    bins = bins)
+
+  }
+  return(pal)
+})
+
 
 
 
 
 output$mymap<- renderLeaflet({
     leafmap
+})
+
+observe({
+  pal <- get_pal()
+  leafletProxy("mymap") %>%
+    leaflet::addPolygons(data=rawdata$district,
+                         fillColor = ~pal(rawdata$district[[input$env_opts]]),
+                         # fillColor = ~pal(!!sym(input$env_opts)),
+                         label = rawdata$district[[input$env_opts]],
+                         weight = 2,
+                         opacity = 1,
+                         color = "white",
+                         dashArray = "3",
+                         fillOpacity = 0.5,
+                         layerId = ~DName2019,
+                         highlight = highlightOptions(
+                           weight = 5,
+                           color = "#666",
+                           dashArray = "",
+                           fillOpacity = 0.2,
+                           bringToFront = TRUE))
 
 })
 
+<<<<<<< HEAD
 
+=======
+# plots
+>>>>>>> develop
 output$precip_plot<-
     renderHighchart({avg_precip_uga %>%
     highcharter::hchart(type = "line",
                         hcaes(x = date, y = precip_avg)) %>%
             hc_title(text=glue::glue("Average {input$env_opts} Across Uganda"))})
-
-# add leaflet proxy so map changes with NDVI vs precip
-
 
 
 observeEvent(input$mymap_shape_click,{
@@ -132,6 +180,7 @@ observeEvent(input$mymap_shape_click,{
 
 }
 )
+
 }
 # Run the application
 shinyApp(ui = ui, server = server)
