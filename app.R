@@ -79,8 +79,6 @@ ui <- bootstrapPage(
 
 # Define server logic required to draw a histogram
 server <- function(input, output) {
-# htitle<- glue::glue("Average {input$env_opts} Across Uganda")
-
 
 get_pal<- reactive({
   if(input$env_opts=="Precipitation"){
@@ -98,11 +96,10 @@ get_pal<- reactive({
 
 output$mymap<- renderLeaflet({
     leafmap
-
 })
+
 observe({
   pal <- get_pal()
-
   leafletProxy("mymap") %>%
     leaflet::addPolygons(data=rawdata$district,
                          fillColor = ~pal(rawdata$district[[input$env_opts]]),
@@ -121,14 +118,12 @@ observe({
 
 })
 
+# plots
 output$precip_plot<-
     renderHighchart({avg_precip_uga %>%
     highcharter::hchart(type = "line",
                         hcaes(x = date, y = precip_avg)) %>%
             hc_title(text=glue::glue("Average {input$env_opts} Across Uganda"))})
-
-# add leaflet proxy so map changes with NDVI vs precip
-
 
 
 observeEvent(input$mymap_shape_click,{
@@ -147,6 +142,7 @@ observeEvent(input$mymap_shape_click,{
 
 }
 )
+
 }
 # Run the application
 shinyApp(ui = ui, server = server)
