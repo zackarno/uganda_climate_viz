@@ -14,6 +14,9 @@ library(sf)
 library(highcharter)
 # library(readr)
 # reach_cols()
+
+# should be able to incorporate map click into filter data set.... if (input$map_click activated do so something)
+
 rawdata<-readr::read_rds("rawdata.rds")
 
 rawdata$district<- rawdata$district %>%
@@ -30,8 +33,15 @@ bb<-st_bbox(rawdata$district)
 avg_precip_uga<-rawdata$precip_district %>%
     group_by(date) %>%
     summarise(
-        precip_avg= mean(precip,na.rm=T)
+        mm= mean(precip,na.rm=T)
     )
+rawdata$precip_district<-rawdata$precip_district %>% rename(mm="precip")
+rawdata$precip_10yr_by_dist<-rawdata$precip_10yr_by_dist %>% rename(mm="ten_yr_mm",
+                                                                    date= "month")
+
+historical_monthly_precip_uga<-rawdata$precip_10yr_by_dist %>%
+  group_by(date) %>%
+  summarise(mm=sum(mm,na.rm=T))
 
 leafmap<-leaflet(options= leafletOptions(zoomSnap = 0.1,
                                          zoomDelta=0.1)) %>%
@@ -93,7 +103,46 @@ get_pal<- reactive({
   }
   return(pal)
 })
+# plots
+# output$precip_plot<-
+#   renderHighchart({avg_precip_uga %>%
+#       highcharter::hchart(type = "line",
+#                           hcaes(x = date, y = precip_avg)) %>%
+#       hc_title(text=glue::glue("Average {input$env_opts} Across Uganda"))})
 
+get_general_data<- reactive({
+  if(input$env_opts=="Precipitation"){
+    if(input$temporal_opts=="Current Status"){
+      data<-avg_precip_uga
+    }
+    if(input$temporal_opts=="Historical"){
+      data<-historical_monthly_precip_uga
+    }
+
+  }
+  return(data)
+})
+
+get_district_data<- reactive({
+  if(input$env_opts=="Precipitation"){
+    if(input$temporal_opts=="Current Status"){
+      data<- rawdata$precip_district
+    }
+    if(input$temporal_opts=="Historical"){
+      data<-rawdata$precip_10yr_by_dist
+    }
+
+  }
+  return(data)
+  }
+  )
+
+output$precip_plot<-  renderHighchart({
+  get_general_data()%>%
+    highcharter::hchart(type = "line",
+                        hcaes(x = date, y = mm)) %>%
+    hc_title(text=glue::glue("Average {input$env_opts} Across Uganda"))
+  })
 
 output$mymap<- renderLeaflet({
     leafmap
@@ -119,33 +168,56 @@ observe({
                            fillOpacity = 0.2,
                            bringToFront = TRUE))
 
-})
+  })
 
-# plots
-output$precip_plot<-
-    renderHighchart({avg_precip_uga %>%
-    highcharter::hchart(type = "line",
-                        hcaes(x = date, y = precip_avg)) %>%
-            hc_title(text=glue::glue("Average {input$env_opts} Across Uganda"))})
 
+
+### need to make this part more reactive...
 
 observeEvent(input$mymap_shape_click,{
   print("observed map_shap_click")
-    print(input$mymap_shape_click$id)
-  output$precip_plot <- renderHighchart({
-    return(
-        rawdata$precip_district %>%
-            filter(DName2019==input$mymap_shape_click$id) %>%
-            highcharter::hchart(type = "line",
-                                hcaes(x = date, y = precip)) %>%
-          hc_title(text=glue::glue("Average {input$env_opts} Across {stringr::str_to_title(input$mymap_shape_click$id)} District"))
+  print(input$mymap_shape_click$id)
+  get_district_data() %>%
+    filter(DName2019==input$mymap_shape_click$id) %>%
+    highcharter::hchart(type = "line",
+                        hcaes(x = date, y = mm)) %>%
+    hc_title(text=glue::glue("Average {input$env_opts} Across {stringr::str_to_title(input$mymap_shape_click$id)} District"))
+})
 
-    )
-  })
+
 
 }
-)
 
-}
 # Run the application
 shinyApp(ui = ui, server = server)
+
+# observeEvent(input$mymap_shape_click,{
+#   print("observed map_shap_click")
+#     print(input$mymap_shape_click$id)
+#     if(input$temporal_opts=="Current Status"){
+#   output$precip_plot <- renderHighchart({
+#     return(
+#         rawdata$precip_district %>%
+#             filter(DName2019==input$mymap_shape_click$id) %>%
+#             highcharter::hchart(type = "line",
+#                                 hcaes(x = date, y = mm)) %>%
+#           hc_title(text=glue::glue("Average {input$env_opts} Across {stringr::str_to_title(input$mymap_shape_click$id)} District"))
+#
+#     )
+#   })
+#     }
+#     if(input$temporal_opts=="Historical"){
+#       output$precip_plot <- renderHighchart({
+#         return(
+#           rawdata$precip_10yr_by_dist %>%
+#             filter(DName2019==input$mymap_shape_click$id) %>%
+#             highcharter::hchart(type = "line",
+#                             hcaes(x = date, y = mm)) %>%
+#             hc_title(text=glue::glue("Average {input$env_opts} Across {stringr::str_to_title(input$mymap_shape_click$id)} District"))
+#         )
+#
+#     })
+#     }
+#
+# }
+
