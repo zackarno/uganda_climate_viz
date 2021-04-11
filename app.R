@@ -92,7 +92,7 @@ server <- function(input, output) {
 get_pal<- reactive({
   if(input$env_opts=="Precipitation"){
     bins<- seq(0, 350, by = 50)
-    pal <- colorBin(palette = "YlOrRd", domain = rawdata$district$Precipitation, bins = bins)
+    pal <- colorBin(palette = "YlOrRd", domain = rawdata$district$mm, bins = bins)
   }
   if(input$env_opts=="NDVI"){
     bins<- pretty(rawdata$district$NDVI)
@@ -110,7 +110,7 @@ get_pal<- reactive({
 #                           hcaes(x = date, y = precip_avg)) %>%
 #       hc_title(text=glue::glue("Average {input$env_opts} Across Uganda"))})
 
-get_general_data<- reactive({
+get_country_level_data<- reactive({
   if(input$env_opts=="Precipitation"){
     if(input$temporal_opts=="Current Status"){
       data<-avg_precip_uga
@@ -134,15 +134,24 @@ get_district_data<- reactive({
 
   }
   return(data)
-  }
-  )
-
-output$precip_plot<-  renderHighchart({
-  get_general_data()%>%
+  })
+line_plot_country_level<- function(df){
+  renderHighchart({get_country_level_data() %>%
     highcharter::hchart(type = "line",
                         hcaes(x = date, y = mm)) %>%
     hc_title(text=glue::glue("Average {input$env_opts} Across Uganda"))
   })
+
+}
+output$precip_plot<-line_plot_country_level(avg_precip_uga)
+
+# output$precip_plot<- line_plot(get_country_level_data())
+# output$precip_plot<-  renderHighchart({
+#   get_country_level_data()
+#     highcharter::hchart(type = "line",
+#                         hcaes(x = date, y = mm)) %>%
+#     hc_title(text=glue::glue("Average {input$env_opts} Across Uganda"))
+#   })
 
 output$mymap<- renderLeaflet({
     leafmap
@@ -168,6 +177,7 @@ observe({
                            fillOpacity = 0.2,
                            bringToFront = TRUE))
 
+
   })
 
 
@@ -177,11 +187,12 @@ observe({
 observeEvent(input$mymap_shape_click,{
   print("observed map_shap_click")
   print(input$mymap_shape_click$id)
-  get_district_data() %>%
+  output$precip_plot<- renderHighchart({ get_district_data() %>%
     filter(DName2019==input$mymap_shape_click$id) %>%
     highcharter::hchart(type = "line",
                         hcaes(x = date, y = mm)) %>%
     hc_title(text=glue::glue("Average {input$env_opts} Across {stringr::str_to_title(input$mymap_shape_click$id)} District"))
+  })
 })
 
 
