@@ -12,6 +12,7 @@ library(ggreach)
 library(dplyr)
 library(sf)
 library(highcharter)
+library(lubridate)
 # library(readr)
 # reach_cols()
 
@@ -31,17 +32,22 @@ bb<-st_bbox(rawdata$district)
 
 
 avg_precip_uga<-rawdata$precip_district %>%
+  # mutate(date= month(date,label=T)) %>%
     group_by(date) %>%
     summarise(
         mm= mean(precip,na.rm=T)
     )
 rawdata$precip_district<-rawdata$precip_district %>% rename(mm="precip")
 rawdata$precip_10yr_by_dist<-rawdata$precip_10yr_by_dist %>% rename(mm="ten_yr_mm",
-                                                                    date= "month")
+                                                                    date= "month") %>%
+  mutate(date=month(as.numeric(date),label=T))
+
 
 historical_monthly_precip_uga<-rawdata$precip_10yr_by_dist %>%
   group_by(date) %>%
-  summarise(mm=sum(mm,na.rm=T))
+  summarise(mm=sum(mm,na.rm=T)) #%>%
+  # ungroup() %>%
+  # mutate(date= month(date,label=T))
 
 leafmap<-leaflet(options= leafletOptions(zoomSnap = 0.1,
                                          zoomDelta=0.1)) %>%
@@ -78,7 +84,8 @@ ui <- bootstrapPage(
                   selectInput(inputId = "env_opts", "Environmental Options:",
                               choices = c("Precipitation", "NDVI"),
                               selected = "Precipitation",
-                              width= 100)
+                              width= 100),
+                  actionButton(inputId = "reset_level", "All of Uganda")
     )
 
 
@@ -92,7 +99,7 @@ server <- function(input, output) {
 get_pal<- reactive({
   if(input$env_opts=="Precipitation"){
     bins<- seq(0, 350, by = 50)
-    pal <- colorBin(palette = "YlOrRd", domain = rawdata$district$mm, bins = bins)
+    pal <- colorBin(palette = "YlGnBu", domain = rawdata$district$mm, bins = bins)
   }
   if(input$env_opts=="NDVI"){
     bins<- pretty(rawdata$district$NDVI)
@@ -194,7 +201,9 @@ observeEvent(input$mymap_shape_click,{
     hc_title(text=glue::glue("Average {input$env_opts} Across {stringr::str_to_title(input$mymap_shape_click$id)} District"))
   })
 })
-
+observeEvent(input$reset_level, {
+  output$precip_plot<-line_plot_country_level(avg_precip_uga)
+})
 
 
 }
