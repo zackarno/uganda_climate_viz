@@ -16,7 +16,6 @@ library(lubridate)
 # library(readr)
 # reach_cols()
 
-# should be able to incorporate map click into filter data set.... if (input$map_click activated do so something)
 
 rawdata<-readr::read_rds("rawdata.rds")
 
@@ -45,7 +44,7 @@ rawdata$precip_10yr_by_dist<-rawdata$precip_10yr_by_dist %>% rename(mm="ten_yr_m
 
 historical_monthly_precip_uga<-rawdata$precip_10yr_by_dist %>%
   group_by(date) %>%
-  summarise(mm=sum(mm,na.rm=T)) #%>%
+  summarise(mm=mean(mm,na.rm=T)) #%>%
   # ungroup() %>%
   # mutate(date= month(date,label=T))
 
